@@ -4,7 +4,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import HomeScreen from '../screens/HomeScreen';
 import SplashScreen from '../screens/SplashScreen';
-import PlaceholderScreen from '../screens/PlaceholderScreen';
+import NotificationsScreen from '../screens/NotificationsScreen';
 import DiaryScreen from '../screens/DiaryScreen';
 import ChatScreen from '../screens/ChatScreen';
 import SettingsScreen from '../screens/SettingsScreen';
@@ -64,7 +64,7 @@ export default function AppNavigator() {
         <Stack.Screen name="Login" component={LoginScreen} />
         <Stack.Screen name="Register" component={RegisterScreen} />
         <Stack.Screen name="Main" component={MainTabs} />
-        <Stack.Screen name="Notifications" component={PlaceholderScreen} />
+        <Stack.Screen name="Notifications" component={NotificationsScreen} />
         <Stack.Screen name="Diary" component={DiaryScreen} />
         <Stack.Screen name="Food" component={FoodScreen} />
         <Stack.Screen name="ProfileEdit" component={ProfileEditScreen} />
