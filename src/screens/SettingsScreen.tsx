@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import Feather from 'react-native-vector-icons/Feather';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
@@ -15,6 +15,9 @@ import { GoogleSignin } from '@react-native-google-signin/google-signin';
 import { ensureConfigured } from '../services/googleSignIn';
 import { useAuth } from '../context/AuthContext';
 import { clearToken, clearRefreshToken } from '../services/authStorage';
+import { useAppDispatch, useAppSelector } from '../hooks/reduxHooks';
+import { loadProfile } from '../store/profileSlice';
+import { getStoredRefreshToken } from '../services/authStorage';
 
 type Props = CompositeScreenProps<
   BottomTabScreenProps<TabParamList, 'Settings'>,
@@ -23,13 +26,29 @@ type Props = CompositeScreenProps<
 
 const SettingsScreen: React.FC<Props> = ({ route, navigation }) => {
   const { profile, setProfile } = useAuth();
+  const dispatch = useAppDispatch();
+  const profileDoc = useAppSelector(state => state.profile.profile);
+  const [refreshToken, setRefreshToken] = useState<string | null>(null);
+
+  useEffect(() => {
+    getStoredRefreshToken().then(token => {
+      setRefreshToken(token);
+      if (token && profile?.id) {
+        dispatch(loadProfile({ uid: profile.id, refreshToken: token }));
+      }
+    });
+  }, [dispatch, profile?.id]);
 
   const displayProfile = useMemo(
     () => ({
-      name: profile?.name || 'Pengguna',
-      email: profile?.email || '-',
+      name: profileDoc?.name || profile?.name || 'Pengguna',
+      email: profileDoc?.email || profile?.email || '-',
       phone: (profile as any)?.phone || '-',
-      age: profile?.age ? `${profile.age} Tahun` : '-',
+      age: profileDoc?.age
+        ? `${profileDoc.age} Tahun`
+        : profile?.age
+          ? `${profile.age} Tahun`
+          : '-',
       joinText: 'Gabung Sejak',
     }),
     [profile],

@@ -20,7 +20,8 @@ import { styles } from '../theme/general';
 import { colors } from '../theme/color';
 import { useAuth } from '../context/AuthContext';
 import { getStoredRefreshToken } from '../services/authStorage';
-import { getHomeData, updateHomeData } from '../services/homeData';
+import { fetchHome, saveHome } from '../store/homeSlice';
+import { useAppDispatch, useAppSelector } from '../hooks/reduxHooks';
 
 type Props = CompositeScreenProps<
   BottomTabScreenProps<TabParamList, 'Home'>,
@@ -52,7 +53,8 @@ const feelOptions = [
 
 const HomeScreen: React.FC<Props> = ({ route, navigation }) => {
   const { profile } = useAuth();
-
+  const dispatch = useAppDispatch();
+  const homeData = useAppSelector(state => state.home.data);
   const [selectedFeel, setSelectedFeel] = useState<string | null>(null);
   const [water, setWater] = useState<number>(0);
   const [painLevel, setPainLevel] = useState<number>(0);
@@ -64,24 +66,18 @@ const HomeScreen: React.FC<Props> = ({ route, navigation }) => {
     const load = async () => {
       const token = await getStoredRefreshToken();
       setRefreshToken(token);
-      if (!token || !profile?.id) return;
-      try {
-        const data = await getHomeData(profile.id, token);
-        if (data.mood) {
-          setSelectedFeel(data.mood);
-        }
-        if (typeof data.waterIntake === 'number') {
-          setWater(data.waterIntake);
-        }
-        if (typeof data.painLevel === 'number') {
-          setPainLevel(data.painLevel);
-        }
-      } catch (err) {
-        console.log('Load home data failed', err);
+      if (token && profile?.id) {
+        dispatch(fetchHome({ uid: profile.id, refreshToken: token }));
       }
     };
     load();
-  }, [profile?.id]);
+  }, [profile?.id, dispatch]);
+
+  useEffect(() => {
+    if (homeData.mood) setSelectedFeel(homeData.mood);
+    if (typeof homeData.waterIntake === 'number') setWater(homeData.waterIntake);
+    if (typeof homeData.painLevel === 'number') setPainLevel(homeData.painLevel);
+  }, [homeData.mood, homeData.waterIntake, homeData.painLevel]);
 
   const notifications: NotificationItem[] = [
     {
@@ -136,33 +132,21 @@ const HomeScreen: React.FC<Props> = ({ route, navigation }) => {
   const handleSelectFeel = async (item: { id: string }) => {
     setSelectedFeel(item.id);
     if (!profile?.id || !refreshToken) return;
-    try {
-      await updateHomeData(profile.id, refreshToken, { mood: item.id });
-    } catch (err) {
-      console.log('Failed to save mood', err);
-    }
+    dispatch(saveHome({ uid: profile.id, refreshToken, data: { mood: item.id } }));
   };
 
   const handleAddWater = async () => {
     const next = Math.min(maxWater, water + 1);
     setWater(next);
     if (!profile?.id || !refreshToken) return;
-    try {
-      await updateHomeData(profile.id, refreshToken, { waterIntake: next });
-    } catch (err) {
-      console.log('Failed to save water intake', err);
-    }
+    dispatch(saveHome({ uid: profile.id, refreshToken, data: { waterIntake: next } }));
   };
 
   const handlePainChange = async (delta: number) => {
     const next = Math.max(0, Math.min(maxPain, painLevel + delta));
     setPainLevel(next);
     if (!profile?.id || !refreshToken) return;
-    try {
-      await updateHomeData(profile.id, refreshToken, { painLevel: next });
-    } catch (err) {
-      console.log('Failed to save pain level', err);
-    }
+    dispatch(saveHome({ uid: profile.id, refreshToken, data: { painLevel: next } }));
   };
 
   return (

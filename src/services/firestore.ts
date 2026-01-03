@@ -3,6 +3,7 @@ import { FIREBASE_PROJECT_ID as FILE_PROJECT_ID } from '../config/env';
 
 const envProjectId = (globalThis as any)?.process?.env?.FIREBASE_PROJECT_ID as string | undefined;
 const PROJECT_ID = envProjectId || FILE_PROJECT_ID || '';
+export const getProjectId = () => PROJECT_ID;
 export const getBaseUrl = () => {
   if (!PROJECT_ID) {
     throw new Error('FIREBASE_PROJECT_ID belum diset.');

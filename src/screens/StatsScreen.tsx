@@ -7,9 +7,11 @@ import { CompositeScreenProps } from '@react-navigation/native';
 import Svg, { Polyline, Circle, Defs, LinearGradient as SvgGradient, Stop, Text as SvgText } from 'react-native-svg';
 import { RootStackParamList, TabParamList } from '../navigation/AppNavigator';
 import { getStoredRefreshToken } from '../services/authStorage';
-import { getMetricsRange, DailyMetric } from '../services/homeData';
+import { DailyMetric } from '../controllers/homeController';
 import { useAuth } from '../context/AuthContext';
 import { styles as themeStyles } from '../theme/general';
+import { fetchMetrics } from '../store/homeSlice';
+import { useAppDispatch, useAppSelector } from '../hooks/reduxHooks';
 
 type Props = CompositeScreenProps<
   BottomTabScreenProps<TabParamList, 'Stats'>,
@@ -22,34 +24,26 @@ const { width: screenWidth } = Dimensions.get('window');
 
 const StatsScreen: React.FC<Props> = () => {
   const { profile } = useAuth();
+  const dispatch = useAppDispatch();
   const [range, setRange] = useState<RangeKey>('week');
-  const [loading, setLoading] = useState(false);
-  const [metrics, setMetrics] = useState<DailyMetric[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const metrics = useAppSelector(state => state.home.metrics);
+  const metricsStatus = useAppSelector(state => state.home.metricsStatus);
+  const metricsError = useAppSelector(state => state.home.metricsError);
 
-  const fetchData = async () => {
-    if (!profile?.id) return;
-    setError(null);
-    setLoading(true);
-    try {
+  useEffect(() => {
+    const load = async () => {
+      if (!profile?.id) return;
       const refreshToken = await getStoredRefreshToken();
       if (!refreshToken) {
         setError('Sesi kadaluarsa. Silakan login ulang.');
         return;
       }
       const { start, end } = getRange(range);
-      const data = await getMetricsRange(profile.id, refreshToken, start, end);
-      setMetrics(data);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Gagal memuat data');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchData();
-  }, [range, profile?.id]);
+      dispatch(fetchMetrics({ uid: profile.id, refreshToken, start, end }));
+    };
+    load();
+  }, [profile?.id, range, dispatch]);
 
   const painSeries = useMemo(() => metrics.map(m => m.painLevel ?? 0), [metrics]);
   const waterSeries = useMemo(() => metrics.map(m => m.waterIntake ?? 0), [metrics]);
@@ -104,13 +98,13 @@ const StatsScreen: React.FC<Props> = () => {
         </View>
       </LinearGradient>
 
-      {loading ? (
+      {metricsStatus === 'loading' ? (
         <View style={{ padding: 20, alignItems: 'center' }}>
           <ActivityIndicator />
         </View>
-      ) : error ? (
+      ) : error || metricsStatus === 'failed' ? (
         <View style={{ padding: 16 }}>
-          <Text style={{ color: 'red' }}>{error}</Text>
+          <Text style={{ color: 'red' }}>{error || metricsError || 'Gagal memuat data'}</Text>
         </View>
       ) : (
         <>

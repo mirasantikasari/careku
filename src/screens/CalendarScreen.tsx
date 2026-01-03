@@ -16,9 +16,8 @@ import { RootStackParamList } from '../navigation/AppNavigator';
 import { useAuth } from '../context/AuthContext';
 import { getStoredRefreshToken } from '../services/authStorage';
 import { CalendarEvent, EventType } from '../services/calendarData';
-import { useDispatch, useSelector } from 'react-redux';
-import { RootState, AppDispatch } from '../store';
 import { addCalendarEvent, deleteCalendarEvent, fetchMonthEvents } from '../store/calendarSlice';
+import { useAppDispatch, useAppSelector } from '../hooks/reduxHooks';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Calendar'>;
 
@@ -35,7 +34,7 @@ const eventTypes: { key: EventType; label: string; color: string }[] = [
 
 const CalendarScreen: React.FC<Props> = ({ navigation }) => {
   const { profile } = useAuth();
-  const dispatch = useDispatch<AppDispatch>();
+  const dispatch = useAppDispatch();
   const [month, setMonth] = useState(() => new Date());
   const [selectedDateKey, setSelectedDateKey] = useState(toKey(new Date()));
   const [modalVisible, setModalVisible] = useState(false);
@@ -46,12 +45,8 @@ const CalendarScreen: React.FC<Props> = ({ navigation }) => {
   const [error, setError] = useState<string | null>(null);
 
   const monthKey = `${month.getFullYear()}-${pad(month.getMonth() + 1)}`;
-  const events = useSelector<RootState, CalendarEvent[]>(
-    state => state.calendar.eventsByMonth[monthKey] || [],
-  );
-  const loading = useSelector<RootState, boolean>(
-    state => state.calendar.status === 'loading',
-  );
+  const events = useAppSelector(state => state.calendar.eventsByMonth[monthKey] || []);
+  const loading = useAppSelector(state => state.calendar.status === 'loading');
 
   const days = useMemo(() => buildMonthDays(month), [month]);
   const monthLabel = useMemo(
@@ -148,14 +143,14 @@ const CalendarScreen: React.FC<Props> = ({ navigation }) => {
           <TouchableOpacity onPress={() => navigation.goBack()} activeOpacity={0.8} style={styles.backButton}>
             <Feather name="arrow-left" size={22} color="#FFFFFF" />
           </TouchableOpacity>
-          <View>
+          <View style={{ marginLeft: 10 }}>
             <Text style={styles.headerTitle}>Health Calendar</Text>
             <Text style={styles.headerSubtitle}>Track appointments & cycles</Text>
           </View>
         </View>
 
         <LinearGradient
-          colors={['#d5d5ffff', '#9fa1a3ff']}
+          colors={['#0e0e0f', '#0073FF']}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={styles.monthSwitcher}>
