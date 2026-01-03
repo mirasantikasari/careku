@@ -1,5 +1,5 @@
 import { createAsyncThunk, createSlice, PayloadAction } from '@reduxjs/toolkit';
-import { CalendarEvent, addEvent, deleteEvent, fetchEventsForMonth } from '../services/calendarData';
+import { CalendarEvent, addEvent, deleteEvent, fetchEventsForMonth } from '../controllers/calendarController';
 
 type Status = 'idle' | 'loading' | 'succeeded' | 'failed';
 
