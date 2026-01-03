@@ -4,6 +4,7 @@ import {
   fetchReminders as fetchRemindersApi,
   saveReminder,
   updateReminderEnabled,
+  deleteReminder,
 } from '../controllers/remindersController';
 
 export type ReminderItem = {
@@ -70,6 +71,14 @@ export const toggleReminder = createAsyncThunk<
   return { id: reminderId, enabled };
 });
 
+export const removeReminder = createAsyncThunk<
+  { id: string },
+  { uid: string; refreshToken: string; reminderId: string }
+>('reminders/remove', async ({ uid, refreshToken, reminderId }) => {
+  await deleteReminder(uid, reminderId, refreshToken);
+  return { id: reminderId };
+});
+
 const remindersSlice = createSlice({
   name: 'reminders',
   initialState,
@@ -101,6 +110,9 @@ const remindersSlice = createSlice({
         state.items = state.items.map(item =>
           item.id === action.payload.id ? { ...item, enabled: action.payload.enabled } : item,
         );
+      })
+      .addCase(removeReminder.fulfilled, (state, action) => {
+        state.items = state.items.filter(item => item.id !== action.payload.id);
       });
   },
 });

@@ -18,7 +18,7 @@ import { RootStackParamList } from '../navigation/AppNavigator';
 import { useAuth } from '../context/AuthContext';
 import { getStoredRefreshToken } from '../services/authStorage';
 import { ReminderPayload } from '../controllers/remindersController';
-import { addReminder, fetchReminders, toggleReminder, ReminderItem } from '../store/remindersSlice';
+import { addReminder, fetchReminders, toggleReminder, ReminderItem, removeReminder } from '../store/remindersSlice';
 import { useAppDispatch, useAppSelector } from '../hooks/reduxHooks';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Notifications'>;
@@ -31,16 +31,16 @@ type SummaryItem = {
 };
 
 const summaryItems: SummaryItem[] = [
-  { id: 'active', icon: 'bell', label: 'Active', value: 3 },
-  { id: 'today', icon: 'clock', label: 'Today', value: 5 },
-  { id: 'week', icon: 'calendar', label: 'This Week', value: 12 },
+  { id: 'active', icon: 'bell', label: 'Aktif', value: 3 },
+  { id: 'today', icon: 'clock', label: 'Hari Ini', value: 5 },
+  { id: 'week', icon: 'calendar', label: 'Minggu Ini', value: 12 },
 ];
 
 const reminderTypes = [
-  { id: 'medicine', label: 'Medicine', icon: 'edit-3', accent: '#FF6FA5', badge: 'rgba(255, 111, 165, 0.15)' },
-  { id: 'water', label: 'Drink Water', icon: 'droplet', accent: '#3AC7E5', badge: 'rgba(58, 199, 229, 0.15)' },
-  { id: 'appointment', label: 'Appointment', icon: 'calendar', accent: '#FF9C73', badge: 'rgba(255, 156, 115, 0.15)' },
-  { id: 'supplement', label: 'Supplement', icon: 'heart', accent: '#B0B7C3', badge: 'rgba(176, 183, 195, 0.18)' },
+  { id: 'obat', label: 'Medicine', icon: 'edit-3', accent: '#FF6FA5', badge: 'rgba(255, 111, 165, 0.15)' },
+  { id: 'minum', label: 'Drink Water', icon: 'droplet', accent: '#3AC7E5', badge: 'rgba(58, 199, 229, 0.15)' },
+  { id: 'janji_temu', label: 'Janji Temu', icon: 'calendar', accent: '#FF9C73', badge: 'rgba(255, 156, 115, 0.15)' },
+  { id: 'pelengkap', label: 'Supplement', icon: 'heart', accent: '#B0B7C3', badge: 'rgba(176, 183, 195, 0.18)' },
 ];
 
 const NotificationsScreen: React.FC<Props> = ({ navigation }) => {
@@ -135,6 +135,25 @@ const NotificationsScreen: React.FC<Props> = ({ navigation }) => {
     setRepeat('Daily');
   };
 
+  const handleDeleteReminder = (id: string) => {
+    if (!profile?.id || !refreshToken) {
+      Alert.alert('Tidak bisa menghapus', 'Pastikan sudah login.');
+      return;
+    }
+    Alert.alert('Hapus Reminder', 'Yakin ingin menghapus reminder ini?', [
+      { text: 'Batal', style: 'cancel' },
+      {
+        text: 'Hapus',
+        style: 'destructive',
+        onPress: () => {
+          dispatch(removeReminder({ uid: profile.id, refreshToken, reminderId: id })).catch(err =>
+            Alert.alert('Error', err?.message || 'Gagal menghapus reminder.'),
+          );
+        },
+      },
+    ]);
+  };
+
   const handleAddReminder = async () => {
     if (!profile?.id) {
       Alert.alert('Profil tidak ditemukan', 'Pastikan sudah login terlebih dahulu.');
@@ -145,7 +164,7 @@ const NotificationsScreen: React.FC<Props> = ({ navigation }) => {
       return;
     }
     if (!title.trim() || !time.trim()) {
-      Alert.alert('Lengkapi data', 'Title dan waktu harus diisi.');
+      Alert.alert('Lengkapi data', 'Judul dan waktu harus diisi.');
       return;
     }
 
@@ -176,7 +195,7 @@ const NotificationsScreen: React.FC<Props> = ({ navigation }) => {
     <View style={styles.container}>
       <ScrollView showsVerticalScrollIndicator={false}>
         <LinearGradient
-          colors={['#0F8FF9', '#F65BA5']}
+          colors={['#0e0e0f', '#0073FF']}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={styles.header}>
@@ -185,8 +204,8 @@ const NotificationsScreen: React.FC<Props> = ({ navigation }) => {
               <Feather name="arrow-left" size={22} color="#FFFFFF" />
             </TouchableOpacity>
             <View>
-              <Text style={styles.headerTitle}>Reminders</Text>
-              <Text style={styles.headerSubtitle}>Never miss important tasks</Text>
+              <Text style={styles.headerTitle}>Pengingat</Text>
+              <Text style={styles.headerSubtitle}>Jangan pernah melewatkan tugas penting</Text>
             </View>
           </View>
 
@@ -212,7 +231,7 @@ const NotificationsScreen: React.FC<Props> = ({ navigation }) => {
         </LinearGradient>
 
         <View style={styles.body}>
-          <Text style={styles.sectionTitle}>All Reminders</Text>
+          <Text style={styles.sectionTitle}>Semua Pengingat</Text>
 
           {loadingList ? (
             <View style={{ paddingVertical: 20 }}>
@@ -245,8 +264,11 @@ const NotificationsScreen: React.FC<Props> = ({ navigation }) => {
                   trackColor={{ false: '#E5E7EB', true: '#6EC9FF' }}
                   thumbColor={item.enabled ? '#FFFFFF' : '#FFFFFF'}
                 />
-                <TouchableOpacity style={styles.moreButton} activeOpacity={0.6}>
-                  <Feather name="more-vertical" size={20} color="#9CA3AF" />
+                <TouchableOpacity
+                  style={styles.moreButton}
+                  activeOpacity={0.6}
+                  onPress={() => handleDeleteReminder(item.id)}>
+                  <Feather name="trash-2" size={20} color="#EF4444" />
                 </TouchableOpacity>
               </View>
             ))
@@ -255,7 +277,7 @@ const NotificationsScreen: React.FC<Props> = ({ navigation }) => {
       </ScrollView>
 
       <TouchableOpacity style={styles.fab} activeOpacity={0.85} onPress={() => setModalVisible(true)}>
-        <LinearGradient colors={['#0F8FF9', '#F65BA5']} style={styles.fabGradient}>
+        <LinearGradient colors={['#0e0e0f', '#0073FF']} style={styles.fabGradient}>
           <Feather name="plus" size={28} color="#FFFFFF" />
         </LinearGradient>
       </TouchableOpacity>
@@ -264,9 +286,9 @@ const NotificationsScreen: React.FC<Props> = ({ navigation }) => {
         <View style={styles.modalOverlay}>
           <View style={styles.modalCard}>
             <View style={styles.modalHandle} />
-            <Text style={styles.modalTitle}>Add New Reminder</Text>
+            <Text style={styles.modalTitle}>Tambah Pengingat Baru</Text>
 
-            <Text style={styles.label}>Type</Text>
+            <Text style={styles.label}>Tipe</Text>
             <View style={styles.selectorRow}>
               {reminderTypes.map(option => (
                 <TouchableOpacity
@@ -282,9 +304,9 @@ const NotificationsScreen: React.FC<Props> = ({ navigation }) => {
               ))}
             </View>
 
-            <Text style={styles.label}>Title</Text>
+            <Text style={styles.label}>Judul</Text>
             <TextInput
-              placeholder="Enter reminder title"
+              placeholder="Masukkan judul pengingat"
               value={title}
               onChangeText={setTitle}
               style={styles.input}
@@ -293,7 +315,7 @@ const NotificationsScreen: React.FC<Props> = ({ navigation }) => {
 
             <View style={styles.rowSpace}>
               <View style={{ flex: 1, marginRight: 8 }}>
-                <Text style={styles.label}>Time</Text>
+                <Text style={styles.label}>Waktu</Text>
                 <TouchableOpacity
                   style={[styles.input, styles.inputButton]}
                   onPress={() => setTimePickerVisible(true)}>
@@ -304,7 +326,7 @@ const NotificationsScreen: React.FC<Props> = ({ navigation }) => {
                 </TouchableOpacity>
               </View>
               <View style={{ flex: 1, marginLeft: 8 }}>
-                <Text style={styles.label}>Repeat</Text>
+                <Text style={styles.label}>Ulangi</Text>
                 <View style={styles.selectorRow}>
                   {['Daily', 'Weekly', 'Monthly'].map(option => (
                     <TouchableOpacity
@@ -323,17 +345,17 @@ const NotificationsScreen: React.FC<Props> = ({ navigation }) => {
 
             <View style={styles.modalActions}>
               <TouchableOpacity style={styles.secondaryBtn} onPress={() => { resetForm(); setModalVisible(false); }}>
-                <Text style={styles.secondaryText}>Cancel</Text>
+                <Text style={styles.secondaryText}>Batal</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={styles.primaryBtn}
                 onPress={handleAddReminder}
                 disabled={saving}>
-                <LinearGradient colors={['#0F8FF9', '#F65BA5']} style={styles.primaryGradient}>
+                <LinearGradient colors={['#0e0e0f', '#0073FF']} style={styles.primaryGradient}>
                   {saving ? (
                     <ActivityIndicator color="#FFFFFF" />
                   ) : (
-                    <Text style={styles.primaryText}>Add Reminder</Text>
+                    <Text style={styles.primaryText}>Tambah Pengingat</Text>
                   )}
                 </LinearGradient>
               </TouchableOpacity>

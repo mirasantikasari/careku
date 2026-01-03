@@ -151,3 +151,35 @@ export const updateReminderEnabled = async (
     throw new Error(`Gagal memperbarui status di Firestore: ${body}`);
   }
 };
+
+export const deleteReminder = async (userId: string, reminderId: string, refreshToken: string) => {
+  const PROJECT_ID = getProjectId();
+  const API_KEY = getFirebaseApiKey();
+  const accessToken = await getAccessTokenFromRefreshToken(refreshToken);
+
+  // Realtime DB
+  const rtRes = await fetch(
+    `${getRtdbUrl(PROJECT_ID)}/reminders/${userId}/${reminderId}.json?auth=${accessToken}`,
+    {
+      method: 'DELETE',
+    },
+  );
+
+  if (!rtRes.ok) {
+    const body = await rtRes.text();
+    throw new Error(`Gagal menghapus di Realtime DB: ${body}`);
+  }
+
+  // Firestore
+  const fsRes = await fetch(`${getBaseUrl()}/reminders/${reminderId}?key=${API_KEY}`, {
+    method: 'DELETE',
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+    },
+  });
+
+  if (!fsRes.ok) {
+    const body = await fsRes.text();
+    throw new Error(`Gagal menghapus di Firestore: ${body}`);
+  }
+};
